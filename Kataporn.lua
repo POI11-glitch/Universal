@@ -28,16 +28,92 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-local Tab = Window:CreateTab("Tab", 4483362458) -- Title, Image
-local Section = Tab:CreateSection("Player")
+local Tab = Window:CreateTab("Player Manager", 4483362458) -- Title, Image
+local Visual = Window:CreateTab("Visual Manager", 4483362458) -- Title, Image
+local Misc = Window:CreateTab("Misc Manager", 4483362458) -- Title, Image
+local Edit = Window:CreateTab("UI Manager", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Manager")
+local Section = Edit:CreateSection("Manager")
+local Section = Misc:CreateSection("Manager")
+local Section = Visual:CreateSection("Manager")
 local Divider = Tab:CreateDivider()
 
-local Button = Tab:CreateButton({
+local Button = Misc:CreateButton({
    Name = "Reset Character",
    Callback = function()
 		game.Workspace.dobogg_12.Humanoid.Health = 0
    end,
 })
+
+local Button = Edit:CreateButton({
+    Name = "Destroy UI For Reset Script",
+    Callback = function()
+         Rayfield:Destroy()
+    end,
+ })
+
+ local Slider = Visual:CreateSlider({
+    Name = "Hitbox Size",
+    Range = {0, 100},
+    Increment = 1,
+    Suffix = "Studs",
+    CurrentValue = 10,
+    Flag = "HitboxSlider", -- A flag to identify this setting
+    Callback = function(Value)
+        -- Update the global hitbox size when the slider changes
+        getgenv().hitboxsize = Value
+        -- Update the hitbox size for all players based on the new slider value
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= lp then
+                hitbox(player) -- Call the function to update the hitbox size for the player
+            end
+        end
+    end,
+})
+
+-- Existing hitbox function with the slider's value controlling the hitbox size
+local function hitbox(plr)
+    local plrname = plr.Name
+    local size = getgenv().hitboxsize
+    if not connections[plr] or not connections["SteppedLoop_"..plrname] then
+        connections[plr] = plr.CharacterAdded:Connect(function(char)
+            repeat task.wait() until char:FindFirstChildWhichIsA("Humanoid") and char:FindFirstChildWhichIsA("Humanoid").RootPart
+            hitbox(plr)
+        end)
+        connections["SteppedLoop_"..plrname] = rs.Stepped:Connect(function()
+            if plr.Character then
+                for i,v in next, plr.Character:GetDescendants() do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end
+    repeat task.wait() until plr.Character and plr.Character:FindFirstChildWhichIsA("Humanoid") and plr.Character:FindFirstChildWhichIsA("Humanoid").RootPart
+    plr.Character:FindFirstChildWhichIsA("Humanoid").RootPart.Size = Vector3.new(size, size, size)
+end
+
+for i, v in next, Players:GetPlayers() do
+    if v ~= lp then
+        hitbox(v)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    hitbox(player)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    local plrname = plr.Name
+    if connections[plr] then
+        connections[plr]:Disconnect()
+    end
+    if connections["SteppedLoop_"..plrname] then
+        connections["SteppedLoop_"..plrname]:Disconnect()
+    end
+end)
+
 
 local tpwalking = false
 local tpWalkSpeed = 16
@@ -72,60 +148,5 @@ local Toggle = Tab:CreateToggle({
         tpWalkSpeed = Value
     end
  })
-
- local Button = Tab:CreateButton({
-   Name = "ESP",
-   Callback = function()
-		local FillColor = Color3.fromRGB(175,25,255)
-local DepthMode = "AlwaysOnTop"
-local FillTransparency = 0.5
-local OutlineColor = Color3.fromRGB(255,255,255)
-local OutlineTransparency = 0
-
-local CoreGui = game:FindService("CoreGui")
-local Players = game:FindService("Players")
-local lp = Players.LocalPlayer
-local connections = {}
-
-local Storage = Instance.new("Folder")
-Storage.Parent = CoreGui
-Storage.Name = "Highlight_Storage"
-
-local function Highlight(plr)
-    local Highlight = Instance.new("Highlight")
-    Highlight.Name = plr.Name
-    Highlight.FillColor = FillColor
-    Highlight.DepthMode = DepthMode
-    Highlight.FillTransparency = FillTransparency
-    Highlight.OutlineColor = OutlineColor
-    Highlight.OutlineTransparency = 0
-    Highlight.Parent = Storage
-
-    local plrchar = plr.Character
-    if plrchar then
-        Highlight.Adornee = plrchar
-    end
-
-    connections[plr] = plr.CharacterAdded:Connect(function(char)
-        Highlight.Adornee = char
-    end)
-end
-
-Players.PlayerAdded:Connect(Highlight)
-for i,v in next, Players:GetPlayers() do
-    Highlight(v)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    local plrname = plr.Name
-    if Storage[plrname] then
-        Storage[plrname]:Destroy()
-    end
-    if connections[plr] then
-        connections[plr]:Disconnect()
-    end
-end)
-   end,
-})
 
 Keybind:Set("LeftControl") -- Keybind (string)
